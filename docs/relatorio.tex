@@ -1,0 +1,733 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[brazil]{babel}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{geometry}
+\usepackage{enumitem}
+\usepackage{array,booktabs,tabularx}
+\usepackage{xcolor}
+\usepackage{fancyhdr}
+\usepackage{microtype}
+\usepackage[most]{tcolorbox}
+\usepackage{helvet}
+\usepackage{caption}
+\usepackage{float}
+\usepackage{hyperref}
+\usepackage{listings}
+\renewcommand{\familydefault}{\sfdefault}
+
+\geometry{top=20mm,bottom=20mm,left=22mm,right=22mm}
+\definecolor{unirblue}{HTML}{0B4EA2}
+\definecolor{ink}{HTML}{172033}
+\definecolor{muted}{HTML}{667085}
+\definecolor{soft}{HTML}{F5F7FA}
+\definecolor{line}{HTML}{D7DCE2}
+\definecolor{guide}{HTML}{EEF4FB}
+
+\hypersetup{colorlinks=true,linkcolor=unirblue,urlcolor=unirblue,citecolor=unirblue}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{5pt}
+\setlist[itemize]{leftmargin=5mm,itemsep=2pt,topsep=2pt}
+\setlist[enumerate]{leftmargin=6mm,itemsep=2pt,topsep=2pt}
+\captionsetup{font=small,labelfont=bf}
+
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0pt}
+\cfoot{\color{muted}\footnotesize UNIR · Processamento de Imagens · Relatório da Avaliação \hfill \thepage}
+
+\newcommand{\sectiontitle}[1]{%
+  \vspace{5pt}{\Large\bfseries\color{ink}#1}\par
+  \vspace{1mm}{\color{unirblue}\rule{\textwidth}{0.8pt}}\vspace{2mm}}
+
+\newtcolorbox{campo}{
+  colback=soft,colframe=line,boxrule=.4pt,arc=1mm,
+  left=2mm,right=2mm,top=2mm,bottom=2mm
+}
+
+\lstset{
+  basicstyle=\ttfamily\small,
+  backgroundcolor=\color{soft},
+  frame=single,rulecolor=\color{line},
+  columns=fullflexible,keepspaces=true,
+  literate={á}{{\'a}}1 {ã}{{\~a}}1 {ç}{{\c{c}}}1 {é}{{\'e}}1 {ó}{{\'o}}1
+}
+
+\graphicspath{{../resultados/}}
+
+\newcommand{\quadro}[3]{%
+  \begin{minipage}[t]{#1\textwidth}\centering
+    \includegraphics[width=\linewidth]{#2}\\[0.5mm]
+    {\scriptsize #3}
+  \end{minipage}}
+
+\begin{document}
+
+\begin{titlepage}
+\thispagestyle{empty}
+
+\begin{center}
+  \includegraphics[width=4.8cm]{unir_logo.png}
+\end{center}
+
+\vspace{8mm}
+
+\begin{center}
+{\small\bfseries\color{muted} FUNDAÇÃO UNIVERSIDADE FEDERAL DE RONDÔNIA - UNIR}\\[2mm]
+{\small\color{muted} Faculdade de Engenharia, Tecnologia e Inovação - FAETI}\\
+{\small\color{muted} Bacharelado em Ciência da Computação}
+\end{center}
+
+\vfill
+
+\begin{center}
+{\small\bfseries\color{unirblue} PROCESSAMENTO DE IMAGENS}\\[5mm]
+{\Huge\bfseries\color{ink} Relatório da Primeira Avaliação}\\[3mm]
+{\large\color{muted} Biblioteca de Processamento de Imagens em GNU Octave}\\[12mm]
+
+{\Large\bfseries\color{ink} Ricardo Alves da Silva}\\[2mm]
+{\small\color{muted} Matrícula: 20231008324}
+\end{center}
+
+\vfill
+
+\begin{center}
+{\small\color{muted} Professor: Lucas Marques da Cunha}\\[1mm]
+{\small\color{muted} Porto Velho - RO}\\
+{\small\color{muted} 2026}
+\end{center}
+
+\end{titlepage}
+
+\sectiontitle{Identificação do trabalho}
+
+\begin{campo}
+\begin{tabularx}{\textwidth}{>{\bfseries}p{37mm}X}
+Aluno(a): & Ricardo Alves da Silva\\[2mm]
+Matrícula: & 20231008324\\[2mm]
+Disciplina: & Processamento de Imagens\\[2mm]
+Professor: & Lucas Marques da Cunha\\[2mm]
+Título do sistema: & Biblioteca de processamento de imagens em escala de cinza (8 bits)\\[2mm]
+Linguagem/ambiente: & GNU Octave 11.3 (linha de comando), ambiente reprodutível com Nix\\[2mm]
+Repositório: & \url{https://github.com/riccardoalv/pdi-av1}\\
+\end{tabularx}
+\end{campo}
+
+\vspace{3mm}
+\tableofcontents
+\newpage
+
+\section{Introdução}
+
+O processamento digital de imagens trata uma imagem como uma função discreta $f(x,y)$, em que cada par de coordenadas corresponde a um pixel e o valor da função corresponde à intensidade naquele ponto. Em imagens em escala de cinza de 8 bits, essa intensidade é um inteiro no intervalo $[0,255]$, sendo 0 o preto e 255 o branco. Manipular esses valores permite corrigir problemas de aquisição, como baixo contraste, ruído e falta de nitidez, e também extrair informações estruturais, como as bordas dos objetos.
+
+As operações estudadas na Unidade 01 dividem-se em dois grandes grupos. As \emph{transformações pontuais} alteram cada pixel considerando apenas o seu próprio valor: são o negativo, a limiarização, as transformações de potência e logarítmica, o alargamento de contraste e as operações baseadas em histograma. As \emph{operações de vizinhança} consideram também os pixels ao redor: são os filtros espaciais, a convolução, os detectores de bordas e as técnicas de aguçamento. A convolução tem papel central, pois um mesmo procedimento, aplicado com máscaras diferentes, produz suavização, realce de bordas, efeito de relevo ou aguçamento.
+
+Este trabalho apresenta uma biblioteca em GNU Octave que implementa essas operações sem recorrer a funções prontas de processamento: as bibliotecas da linguagem foram usadas apenas para leitura e gravação das imagens. Cada operação é uma função independente, coberta por testes unitários com valores calculados manualmente, o que permite verificar o comportamento de cada algoritmo em pequenas matrizes de pixels.
+
+\subsection{Objetivos}
+
+\textbf{Objetivo geral.} Implementar e analisar, em GNU Octave, as operações de processamento de imagens em escala de cinza de 8 bits da Unidade 01, sem utilizar funções prontas para os algoritmos avaliados.
+
+\textbf{Objetivos específicos.}
+\begin{itemize}
+  \item Implementar uma convolução genérica $g = f*h + \text{offset}$ com máscara $n\times m$, tratamento explícito das bordas e dos valores fora de $[0,255]$.
+  \item Implementar as operações algébricas (dissolve cruzado uniforme e não uniforme) e as transformações de intensidade (negativo, alargamento de contraste, limiarização, potência e logaritmo).
+  \item Implementar o cálculo, a expansão e a equalização de histograma, o contraste adaptativo e os filtros da média e da mediana.
+  \item Implementar os detectores de bordas de Roberts, Sobel, Kirsch e Laplaciano, exibindo as respostas intermediárias, além do aguçamento pelo Laplaciano e da técnica \emph{high boost}.
+  \item Validar todas as funções com testes unitários e analisar os resultados em imagens reais, incluindo os testes obrigatórios de convolução.
+\end{itemize}
+
+\section{Fundamentação teórica}
+
+\subsection{Representação de imagens digitais e vizinhança}
+
+Uma imagem digital em escala de cinza é uma matriz $M\times N$ em que cada elemento $f(x,y)$ representa a intensidade de um pixel. Com 8 bits por pixel, há $L = 2^8 = 256$ níveis possíveis, no intervalo $[0, L-1] = [0,255]$.
+
+A \emph{vizinhança} de um pixel é o conjunto de pixels ao seu redor. A vizinhança-4 contém os quatro vizinhos horizontais e verticais; a vizinhança-8 acrescenta os quatro diagonais. Operações de vizinhança usam uma janela $n\times m$ centrada no pixel. Nas bordas da imagem, parte da janela fica fora dos limites, e é preciso decidir como preencher esses valores: com zeros, com uma constante, repetindo o pixel da borda, entre outras estratégias. Essa escolha afeta apenas uma faixa de largura $\lfloor n/2 \rfloor$ junto às margens, mas pode introduzir bordas artificiais quando o preenchimento difere muito do conteúdo da imagem.
+
+\subsection{Operações algébricas e transformações de intensidade}
+
+O \emph{dissolve cruzado} combina duas imagens do mesmo tamanho por média ponderada. No caso uniforme, o peso $t\in[0,1]$ é o mesmo para todos os pixels:
+\begin{equation}
+g(x,y) = (1-t)\,f_1(x,y) + t\,f_2(x,y).
+\end{equation}
+No caso não uniforme, cada pixel tem seu próprio peso, dado por uma matriz $T(x,y)\in[0,1]$:
+\begin{equation}
+g(x,y) = \big(1-T(x,y)\big)\,f_1(x,y) + T(x,y)\,f_2(x,y).
+\end{equation}
+Como se trata de uma combinação convexa, o resultado nunca sai do intervalo $[0,255]$.
+
+As transformações de intensidade são funções $s = T(r)$ aplicadas a cada pixel de valor $r$:
+\begin{itemize}
+  \item \textbf{Negativo:} $s = (L-1) - r = 255 - r$. Inverte a escala de cinza e facilita a observação de detalhes claros em fundos escuros.
+  \item \textbf{Limiarização:} $s = 255$ se $r \geq t$ e $s = 0$ caso contrário. Produz uma imagem binária que separa objeto e fundo.
+  \item \textbf{Potência (gamma):} $s = c\,r^{\gamma}$, com $r$ normalizado em $[0,1]$. Para $\gamma<1$ os tons escuros são expandidos e a imagem clareia; para $\gamma>1$ os tons claros são expandidos e a imagem escurece; $\gamma=1$ com $c=1$ é a identidade.
+  \item \textbf{Logarítmica:} $s = c\,\log(1+r)$. Expande fortemente os tons escuros e comprime os claros; com $c = 255/\log 256$, o intervalo $[0,255]$ é mapeado em si mesmo.
+  \item \textbf{Alargamento de contraste:} função linear por partes que passa pelos pontos $(0,0)$, $(r_1,s_1)$, $(r_2,s_2)$ e $(255,255)$. Nos trechos com inclinação maior que 1 o contraste aumenta; nos trechos com inclinação menor que 1, diminui.
+\end{itemize}
+
+\subsection{Histograma}
+
+O histograma $h(r_k) = n_k$ conta quantos pixels possuem cada nível $r_k$. Dividindo pelo total de pixels $MN$, obtém-se a probabilidade $p(r_k) = n_k / MN$.
+
+A \emph{expansão} de histograma é uma transformação linear que leva o menor nível presente na imagem a 0 e o maior a 255:
+\begin{equation}
+s = \frac{r - r_{\min}}{r_{\max} - r_{\min}}\cdot 255.
+\end{equation}
+Ela estica o histograma sem alterar sua forma.
+
+A \emph{equalização} usa a distribuição acumulada para redistribuir os níveis:
+\begin{equation}
+s_k = (L-1)\sum_{j=0}^{k} p(r_j).
+\end{equation}
+Cada nível é levado à fração de pixels com intensidade menor ou igual a ele, de modo que os níveis com muitos pixels ficam mais afastados entre si. O histograma resultante tende a ser aproximadamente uniforme.
+
+\subsection{Filtragem espacial e convolução}
+
+A convolução de uma imagem $f$ com uma máscara $h$ de dimensão $n\times m$ é definida por
+\begin{equation}
+g(x,y) = \sum_{s}\sum_{t} h(s,t)\, f(x-s,\,y-t) + \text{offset}.
+\end{equation}
+O sinal negativo nos índices equivale a rotacionar a máscara em $180^\circ$ antes de aplicá-la. Sem essa rotação, a operação é chamada correlação. Para máscaras simétricas em $180^\circ$ as duas operações coincidem; para máscaras direcionais, como as de relevo, elas produzem resultados espelhados.
+
+A convolução é \emph{linear}: $h*(af_1+bf_2) = a(h*f_1)+b(h*f_2)$. O \emph{filtro da média} é uma convolução com a máscara $n\times n$ de coeficientes $1/n^2$, cuja soma é 1, o que preserva o brilho médio. O \emph{filtro da mediana} substitui o pixel pelo valor central dos valores ordenados da janela. A mediana não é linear, portanto não pode ser expressa como convolução.
+
+A soma dos coeficientes da máscara indica o comportamento esperado em regiões homogêneas: soma 1 preserva o brilho; soma 0 anula regiões planas e destaca apenas variações; soma maior que 1 clareia; soma negativa inverte o brilho.
+
+\subsection{Detecção de bordas}
+
+Bordas são regiões de variação abrupta de intensidade e podem ser detectadas por derivadas. Os operadores de primeira ordem estimam o gradiente $\nabla f = (G_x, G_y)$, e a intensidade da borda é a magnitude
+\begin{equation}
+|\nabla f| = \sqrt{G_x^2 + G_y^2}.
+\end{equation}
+
+\begin{itemize}
+  \item \textbf{Roberts:} duas máscaras $2\times2$ que calculam diferenças diagonais,
+  $\left[\begin{smallmatrix}1&0\\0&-1\end{smallmatrix}\right]$ e
+  $\left[\begin{smallmatrix}0&1\\-1&0\end{smallmatrix}\right]$. São simples e rápidas, mas muito sensíveis a ruído.
+  \item \textbf{Sobel:} duas máscaras $3\times3$,
+  $G_x = \left[\begin{smallmatrix}-1&0&1\\-2&0&2\\-1&0&1\end{smallmatrix}\right]$ e
+  $G_y = \left[\begin{smallmatrix}-1&-2&-1\\0&0&0\\1&2&1\end{smallmatrix}\right]$.
+  O peso 2 na linha ou coluna central combina a derivada com uma suavização na direção perpendicular, o que reduz a sensibilidade ao ruído.
+  \item \textbf{Kirsch:} oito máscaras $3\times3$, uma para cada direção (N, NE, E, SE, S, SO, O, NO), obtidas por rotações de $45^\circ$ de
+  $\left[\begin{smallmatrix}5&5&5\\-3&0&-3\\-3&-3&-3\end{smallmatrix}\right]$.
+  A resposta final é o máximo entre as oito respostas.
+  \item \textbf{Laplaciano:} derivada de segunda ordem, $\nabla^2 f = \partial^2 f/\partial x^2 + \partial^2 f/\partial y^2$, aproximada pelas máscaras
+  $\left[\begin{smallmatrix}0&1&0\\1&-4&1\\0&1&0\end{smallmatrix}\right]$ (vizinhança-4) e
+  $\left[\begin{smallmatrix}1&1&1\\1&-8&1\\1&1&1\end{smallmatrix}\right]$ (vizinhança-8).
+  É isotrópico (não tem direção), responde com sinais opostos de cada lado de uma borda e é bastante sensível a ruído.
+\end{itemize}
+
+\subsection{Aguçamento}
+
+O aguçamento realça transições de intensidade somando à imagem original uma componente que só existe nas bordas. No aguçamento pelo Laplaciano,
+\begin{equation}
+g = f + c\,\nabla^2 f,
+\end{equation}
+com $c=-1$ quando o centro da máscara é negativo e $c=+1$ quando é positivo. Em ambos os casos o efeito é aumentar a diferença entre o pixel e seus vizinhos.
+
+Na técnica \emph{high boost}, a componente de detalhe é obtida subtraindo da imagem uma versão suavizada:
+\begin{equation}
+g = f + k\,\big(f - \bar{f}\big),
+\end{equation}
+em que $\bar f$ é a imagem filtrada pela média. Com $k=1$ obtém-se o \emph{unsharp masking}; com $k>1$, o realce é mais intenso.
+
+\subsection{Controle de contraste adaptativo}
+
+O contraste adaptativo ajusta cada pixel de acordo com as estatísticas da sua vizinhança $n\times n$: a média local $m(x,y)$ e o desvio padrão local $\sigma(x,y)$. A formulação adotada neste trabalho é
+\begin{equation}
+g(x,y) = m(x,y) + \frac{c}{\sigma(x,y)}\,\big(f(x,y) - m(x,y)\big),
+\end{equation}
+em que $c$ é uma constante que define o contraste desejado. O termo $f - m$ mede o quanto o pixel se destaca da vizinhança, e o ganho $c/\sigma$ amplia esse destaque em regiões de baixa variação e o reduz em regiões de alta variação. Com isso, o contraste local tende a $c$ em toda a imagem.
+
+\section{Materiais e métodos}
+
+\subsection{Ambiente de desenvolvimento}
+
+O sistema foi implementado em GNU Octave 11.3 em Linux. O ambiente é descrito em um arquivo \texttt{flake.nix}, e o comando \texttt{nix develop} disponibiliza exatamente as mesmas versões das ferramentas em qualquer máquina:
+\begin{itemize}
+  \item GNU Octave 11.3 com o pacote \texttt{image}, usado apenas para leitura e gravação de imagens;
+  \item MISS\_HIT, para verificação de estilo (\texttt{mh\_style}) e análise estática (\texttt{mh\_lint});
+  \item GNU Make, para automatizar testes, verificação de estilo, geração dos resultados e compilação deste relatório.
+\end{itemize}
+
+Das bibliotecas do Octave foram usadas apenas \texttt{imread}, \texttt{imwrite} e \texttt{rgb2gray} (leitura, gravação e conversão de imagens coloridas), além de operações matemáticas elementares (\texttt{sum}, \texttt{sort}, \texttt{sqrt}, \texttt{log}, \texttt{cumsum}, \texttt{max}). Nenhum algoritmo avaliado foi implementado com funções prontas como \texttt{conv2}, \texttt{imfilter}, \texttt{histeq}, \texttt{imadjust}, \texttt{medfilt2} ou \texttt{edge}.
+
+\subsection{Arquitetura e organização do sistema}
+
+O sistema é uma biblioteca: cada operação é uma função em um arquivo próprio na pasta \texttt{src/}. As funções são independentes e reaproveitam umas às outras. A Figura~\ref{fig:arquitetura} mostra as dependências.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  font=\scriptsize\ttfamily,
+  no/.style={draw=unirblue,fill=guide,rounded corners=2pt,inner sep=3pt,align=center},
+  base/.style={no,fill=unirblue!15,font=\scriptsize\ttfamily\bfseries},
+  seta/.style={-latex,draw=muted}]
+  \node[base] (pb) at (-1.5,0) {preencher\_bordas};
+  \node[no]   (me) at (-5.6,-1.2) {filtro\_mediana};
+  \node[base] (cv) at (-1.5,-1.2) {convolucao};
+  \node[no]   (md) at (-6.3,-2.6) {filtro\_media};
+  \node[no]   (ca) at (-3.3,-2.6) {contraste\_adaptativo};
+  \node[no]   (ro) at (0.1,-2.6) {bordas\_roberts\\bordas\_sobel\\bordas\_kirsch};
+  \node[no]   (la) at (3.0,-2.6) {bordas\_laplaciano};
+  \node[no]   (hb) at (-6.3,-4.0) {high\_boost};
+  \node[no]   (ag) at (3.0,-4.0) {agucamento\_laplaciano};
+  \node[no]   (hi) at (6.4,0) {histograma};
+  \node[no]   (eq) at (6.4,-1.2) {equalizacao\_histograma};
+  \node[no]   (pt) at (6.4,-3.3) {negativo\\limiarizacao\\potencia\_gamma\\logaritimo\\alargamento\_contraste\\dissolve\_uniforme\\dissolve\_nao\_uniforme\\expansao\_histograma};
+  \node[base] (ai) at (0,-5.2) {ajustar\_intervalo};
+  \node[font=\scriptsize\sffamily,text=muted] at (0,-5.75) {usada pela maioria das funções para converter o resultado para uint8};
+  \draw[seta] (pb) -- (cv);
+  \draw[seta] (pb) -- (me);
+  \draw[seta] (cv) -- (md);
+  \draw[seta] (cv) -- (ca);
+  \draw[seta] (cv) -- (ro);
+  \draw[seta] (cv) -- (la);
+  \draw[seta] (la) -- (ag);
+  \draw[seta] (md) -- (hb);
+  \draw[seta] (hi) -- (eq);
+\end{tikzpicture}
+\caption{Dependências entre as funções da biblioteca. A seta indica que a função de destino usa a de origem. As funções da coluna da direita são pontuais e não dependem da convolução.}
+\label{fig:arquitetura}
+\end{figure}
+
+O repositório está organizado da seguinte forma:
+\begin{itemize}
+  \item \texttt{src/}: as 22 funções da biblioteca;
+  \item \texttt{tests/}: um arquivo de testes por função e o executor \texttt{run\_tests.m};
+  \item \texttt{gerar\_resultados.m}: aplica as operações às imagens de \texttt{images/} e grava os resultados em \texttt{resultados/};
+  \item \texttt{images/}: imagens de entrada; \texttt{resultados/}: imagens produzidas; \texttt{docs/}: enunciado e relatório.
+\end{itemize}
+
+Os testes usam os blocos nativos do Octave (\texttt{\%!test}, \texttt{\%!assert}, \texttt{\%!error}) e comparam a saída de cada função com valores calculados à mão em matrizes pequenas. São 184 testes, executados com \texttt{make test}; \texttt{make check} executa também a verificação de estilo e a análise estática.
+
+\subsection{Implementação das operações}
+
+Três decisões de projeto valem para toda a biblioteca:
+\begin{enumerate}
+  \item \textbf{Cálculo em ponto flutuante.} As contas são feitas em \texttt{double}, e a conversão para \texttt{uint8} ocorre apenas no final. Em \texttt{uint8}, cada operação intermediária satura e arredonda: \texttt{uint8(200)+uint8(100)} resulta em 255, e \texttt{uint8(64)/255} resulta em 0.
+  \item \textbf{Tratamento explícito de $[0,255]$.} A função \texttt{ajustar\_intervalo(r, modo)} converte o resultado real para \texttt{uint8} em três modos: \texttt{saturar} (valores negativos viram 0 e acima de 255 viram 255; é o padrão), \texttt{normalizar} (reescala linear de $[\min,\max]$ para $[0,255]$) e \texttt{modulo} (valor absoluto seguido de saturação). Em todos os modos o resultado é arredondado com \texttt{round}.
+  \item \textbf{Tratamento explícito das bordas.} A função \texttt{preencher\_bordas(f, tamanho, modo, constante)} acrescenta as linhas e colunas necessárias para a máscara nos modos \texttt{zero}, \texttt{constante} e \texttt{repetir}. Qualquer modo não reconhecido é tratado como \texttt{zero}.
+\end{enumerate}
+
+\subsubsection{Operações algébricas e transformações de intensidade}
+
+Todas são pontuais e foram implementadas de forma vetorizada, operando sobre a matriz inteira:
+\begin{itemize}
+  \item \texttt{negativo}: \texttt{255 - imagem}. O resultado nunca sai do intervalo.
+  \item \texttt{limiarizacao(imagem, limiar)}: pixels menores que o limiar recebem 0, e os demais recebem 255.
+  \item \texttt{potencia\_gamma(imagem, c, y)}: normaliza $r$ para $[0,1]$, calcula $255\,c\,r^{\gamma}$ com potência elemento a elemento (\texttt{.\^{}}) e ajusta o intervalo. A função não se chama \texttt{gamma} porque esse nome pertence à função $\Gamma$ do Octave, usada internamente por \texttt{factorial}.
+  \item \texttt{logaritimo(imagem, c)}: $c\log(1+r)$, seguida do ajuste do intervalo.
+  \item \texttt{alargamento\_contraste(imagem, r1, s1, r2, s2)}: três máscaras lógicas selecionam os pixels de cada trecho ($r<r_1$, $r_1\le r<r_2$ e $r\ge r_2$), e cada grupo recebe a equação da reta correspondente. O caso $r_2=255$ é tratado à parte para evitar divisão por zero.
+  \item \texttt{dissolve\_uniforme} e \texttt{dissolve\_nao\_uniforme}: convertem as imagens para \texttt{double} antes da soma ponderada; na versão não uniforme, os produtos são elemento a elemento (\texttt{.*}).
+\end{itemize}
+
+\subsubsection{Expansão e equalização de histograma}
+
+A função \texttt{histograma} percorre os 256 níveis e conta quantos pixels são iguais a cada um; o nível $k$ é armazenado na posição $k+1$, pois os índices do Octave começam em 1. A \texttt{expansao\_histograma} aplica a equação da expansão por meio de \texttt{ajustar\_intervalo(imagem, 'normalizar')}; uma imagem constante, em que $r_{\max}=r_{\min}$, é devolvida sem alteração. A \texttt{equalizacao\_histograma} calcula as probabilidades, a distribuição acumulada (\texttt{cumsum}) e uma tabela de 256 posições com $255\cdot cdf$; cada pixel é então substituído pelo valor da tabela correspondente ao seu nível.
+
+\subsubsection{Filtros da média e mediana}
+
+O \texttt{filtro\_media(imagem, n, modo)} reaproveita a convolução com a máscara \texttt{ones(n)/(n*n)}. O \texttt{filtro\_mediana(imagem, n, modo)} preenche as bordas, percorre cada pixel, recorta a janela $n\times n$, ordena seus valores com \texttt{sort} e seleciona o elemento central, de posição $(n^2+1)/2$. O tamanho da vizinhança e o modo de borda são parâmetros.
+
+\subsubsection{Convolução genérica}
+
+A função \texttt{convolucao(imagem, kernel, modo, offset, constante)} implementa $g = f*h + \text{offset}$ para máscaras $n\times m$ quaisquer, inclusive retangulares e de dimensão par:
+\begin{enumerate}
+  \item a máscara é rotacionada em $180^\circ$ com \texttt{kernel(end:-1:1, end:-1:1)}, o que caracteriza a convolução (e não a correlação);
+  \item a imagem é convertida para \texttt{double} e preenchida por \texttt{preencher\_bordas}. Para cada dimensão de tamanho $n$, são acrescentadas $\lceil n/2\rceil - 1$ posições antes e $\lfloor n/2\rfloor$ depois; para $n$ ímpar isso equivale a $(n-1)/2$ de cada lado, e para $n$ par o centro da máscara é a posição $\lceil n/2\rceil$;
+  \item para cada pixel $(i,j)$, a janela da imagem preenchida é \texttt{(i:i+n-1, j:j+m-1)}, que é multiplicada elemento a elemento pela máscara; a soma dos produtos, acrescida do offset, é o valor de saída.
+\end{enumerate}
+O resultado é devolvido em \texttt{double} e pode conter valores negativos ou maiores que 255. A conversão para imagem é feita em seguida por \texttt{ajustar\_intervalo}, no modo escolhido. Os parâmetros \texttt{modo}, \texttt{offset} e \texttt{constante} são opcionais, com padrões \texttt{zero}, 0 e 128; as funções que dependem da convolução repassam esses parâmetros com \texttt{varargin}.
+
+\subsubsection{Roberts, Sobel, Kirsch e Laplaciano}
+
+Cada detector aplica suas máscaras com a função \texttt{convolucao} e devolve uma estrutura com todas as respostas intermediárias:
+\begin{itemize}
+  \item \texttt{bordas\_roberts} e \texttt{bordas\_sobel}: campos \texttt{gx}, \texttt{gy}, \texttt{magnitude} $=\sqrt{G_x^2+G_y^2}$ e \texttt{final} (magnitude saturada em \texttt{uint8});
+  \item \texttt{bordas\_kirsch}: as oito máscaras, a matriz \texttt{respostas} ($M\times N\times 8$), o \texttt{maximo} entre elas, a \texttt{direcao} (índice da máscara vencedora) e o \texttt{final};
+  \item \texttt{bordas\_laplaciano(imagem, vizinhanca)}: a \texttt{mascara} de vizinhança 4 ou 8, a \texttt{resposta} com sinal e o \texttt{final}, convertido no modo \texttt{modulo} para que os dois lados de cada borda apareçam.
+\end{itemize}
+Como a convolução gira a máscara, $G_x$ do Sobel é negativo quando a intensidade cresce da esquerda para a direita, e no Kirsch a máscara de rótulo O (oeste) responde às bordas cujo lado claro está a leste. A magnitude e o máximo final não são afetados.
+
+\subsubsection{Aguçamento e high boost}
+
+\texttt{agucamento\_laplaciano(imagem, vizinhanca)} usa \texttt{bordas\_laplaciano} e devolve separadamente a resposta do Laplaciano (\texttt{laplaciano}, com sinal, e \texttt{laplaciano\_visual}, normalizada para exibição) e a imagem combinada \texttt{final} $= f - \nabla^2 f$. A subtração decorre do centro negativo das máscaras.
+
+\texttt{high\_boost(imagem, k, n)} obtém a versão suavizada com \texttt{filtro\_media}, calcula a máscara de detalhe $f-\bar f$ e devolve $f + k(f-\bar f)$. Como o filtro da média já devolve a imagem arredondada, a máscara de detalhe tem erro de até $\pm0{,}5$, que é multiplicado por $k$; para $k=1$ esse erro não altera o resultado inteiro final.
+
+\subsubsection{Controle de contraste adaptativo}
+
+\texttt{contraste\_adaptativo(imagem, c, n, modo)} calcula a média local $m$ convoluindo a imagem com a máscara da média $n\times n$, e a variância local por $\sigma^2 = \overline{f^2} - m^2$, convoluindo também a imagem ao quadrado. Pequenos valores negativos de $\sigma^2$, causados por arredondamento numérico, são zerados. Nos pixels com $\sigma>0$ aplica-se a equação do contraste adaptativo; nos pixels com $\sigma=0$ (região homogênea) o valor original é mantido, evitando a divisão por zero.
+
+\section{Resultados}
+
+\subsection{Utilização da biblioteca}
+
+O sistema é utilizado a partir do Octave, chamando as funções da biblioteca. Um exemplo de uso:
+
+\begin{lstlisting}
+addpath('src');
+f = imread('images/cameraman.tif');
+
+g = potencia_gamma(f, 1, 0.5);
+r = bordas_sobel(f, 'repetir');      % r.gx, r.gy, r.magnitude, r.final
+a = agucamento_laplaciano(f, 8);     % a.laplaciano_visual, a.final
+c = convolucao(f, [0 0 0; 0 1 0; 0 0 -1], 'repetir', 128);
+imwrite(ajustar_intervalo(c), 'relevo.png');
+\end{lstlisting}
+
+O comando \texttt{make resultados} executa o script \texttt{gerar\_resultados.m}, que produz todas as imagens apresentadas nesta seção na pasta \texttt{resultados/}. Exceto quando indicado, as operações de vizinhança usam o modo de borda \texttt{repetir}.
+
+\subsection{Transformações de intensidade e histogramas}
+
+A Figura~\ref{fig:pontuais} mostra o negativo, a limiarização, a transformação logarítmica e o alargamento de contraste. O negativo da mamografia torna o tecido escuro e a lesão clara em um fundo branco, o que facilita observar as estruturas finas. A limiarização com $t=128$ separa as cristas da impressão digital do fundo. A transformação logarítmica revela, na imagem do Hubble, objetos de baixa intensidade que estavam praticamente invisíveis, ao custo de clarear todo o fundo. No alargamento, com $(r_1,s_1)=(140,30)$ e $(r_2,s_2)=(200,225)$, o trecho central tem inclinação $195/60\approx3{,}3$: a faixa $[140,200]$, que concentra quase todos os pixels da imagem de polímeros, passa a ocupar $[30,225]$, e as estruturas tornam-se nítidas.
+
+\begin{figure}[H]
+\centering
+\quadro{0.22}{intensidade/mamografia}{mamografia}\hfill
+\quadro{0.22}{intensidade/mamografia_negativo}{negativo}\hfill
+\quadro{0.22}{intensidade/digital}{impressão digital}\hfill
+\quadro{0.22}{intensidade/digital_limiar_128}{limiarização, $t=128$}\\[2mm]
+\quadro{0.22}{intensidade/hubble}{Hubble}\hfill
+\quadro{0.22}{intensidade/hubble_log}{logaritmo, $c=255/\log 256$}\hfill
+\quadro{0.15}{intensidade/polimeros}{polímeros}\hfill
+\quadro{0.15}{intensidade/polimeros_alargamento}{alargamento}\hfill
+\quadro{0.15}{intensidade/curva_alargamento}{curva $s=T(r)$}
+\caption{Negativo, limiarização, transformação logarítmica e alargamento de contraste.}
+\label{fig:pontuais}
+\end{figure}
+
+A Figura~\ref{fig:gamma} mostra a transformação de potência sobre uma imagem de ressonância predominantemente escura, com $c=1$. Com $\gamma=0{,}5$ e $\gamma=0{,}3$ a coluna vertebral e os tecidos ao redor tornam-se visíveis, e quanto menor $\gamma$ maior o clareamento. Com $\gamma=2$ a imagem escurece e apenas as regiões mais claras permanecem visíveis.
+
+\begin{figure}[H]
+\centering
+\quadro{0.23}{intensidade/fratura}{original}\hfill
+\quadro{0.23}{intensidade/fratura_gamma_0_5}{$\gamma=0{,}5$}\hfill
+\quadro{0.23}{intensidade/fratura_gamma_0_3}{$\gamma=0{,}3$}\hfill
+\quadro{0.23}{intensidade/fratura_gamma_2}{$\gamma=2$}
+\caption{Transformação de potência com $c=1$.}
+\label{fig:gamma}
+\end{figure}
+
+A Figura~\ref{fig:dissolve} mostra o dissolve cruzado. No uniforme, $t=0{,}25$ mantém a imagem do cinegrafista dominante e $t=0{,}75$ privilegia a Lena. No não uniforme, a matriz de pesos em rampa produz uma transição gradual da esquerda para a direita, e a matriz circular insere a Lena dentro de um círculo.
+
+\begin{figure}[H]
+\centering
+\quadro{0.15}{algebrica/f1}{$f_1$}\hfill
+\quadro{0.15}{algebrica/f2}{$f_2$}\hfill
+\quadro{0.15}{algebrica/uniforme_t_0_25}{$t=0{,}25$}\hfill
+\quadro{0.15}{algebrica/uniforme_t_0_5}{$t=0{,}5$}\hfill
+\quadro{0.15}{algebrica/uniforme_t_0_75}{$t=0{,}75$}\\[2mm]
+\quadro{0.15}{algebrica/pesos_rampa}{pesos em rampa}\hspace{2mm}
+\quadro{0.15}{algebrica/nao_uniforme_rampa}{não uniforme}\hspace{8mm}
+\quadro{0.15}{algebrica/pesos_circulo}{pesos circulares}\hspace{2mm}
+\quadro{0.15}{algebrica/nao_uniforme_circulo}{não uniforme}
+\caption{Dissolve cruzado uniforme (linha superior) e não uniforme (linha inferior).}
+\label{fig:dissolve}
+\end{figure}
+
+A Figura~\ref{fig:histograma} compara expansão e equalização. Na imagem escura, que ocupa apenas os níveis 2 a 106, a expansão estica o histograma para $[0,255]$ e o desvio padrão passa de 12,9 para 31,5; a equalização vai além e redistribui os níveis, levando o desvio padrão a 70,7. Na imagem de polímeros, alguns poucos pixels já ocupam os extremos 90 e 241, por isso a expansão tem efeito modesto (desvio padrão de 13,8 para 23,3), enquanto a equalização produz um realce forte (73,0). Nos histogramas equalizados aparecem lacunas: pixels de mesmo nível não podem ser separados, então o número de níveis distintos diminui (de 152 para 69 nos polímeros).
+
+\begin{figure}[H]
+\centering
+\quadro{0.31}{histograma/fundo_escuro_original}{original}\hfill
+\quadro{0.31}{histograma/fundo_escuro_expansao}{expansão}\hfill
+\quadro{0.31}{histograma/fundo_escuro_equalizacao}{equalização}\\[1mm]
+\quadro{0.31}{histograma/fundo_escuro_original_hist}{}\hfill
+\quadro{0.31}{histograma/fundo_escuro_expansao_hist}{}\hfill
+\quadro{0.31}{histograma/fundo_escuro_equalizacao_hist}{}\\[2mm]
+\quadro{0.31}{histograma/polimeros_original}{original}\hfill
+\quadro{0.31}{histograma/polimeros_expansao}{expansão}\hfill
+\quadro{0.31}{histograma/polimeros_equalizacao}{equalização}\\[1mm]
+\quadro{0.31}{histograma/polimeros_original_hist}{}\hfill
+\quadro{0.31}{histograma/polimeros_expansao_hist}{}\hfill
+\quadro{0.31}{histograma/polimeros_equalizacao_hist}{}
+\caption{Expansão e equalização de histograma, com os respectivos histogramas abaixo de cada imagem.}
+\label{fig:histograma}
+\end{figure}
+
+\subsection{Filtragem espacial}
+
+Para comparar os filtros, foram adicionados à imagem do cinegrafista um ruído impulsivo (sal e pimenta, 10\% dos pixels) e um ruído gaussiano (desvio padrão 20). A Tabela~\ref{tab:rmse} apresenta a raiz do erro quadrático médio (RMSE) em relação à imagem sem ruído, e a Figura~\ref{fig:filtros} mostra os resultados.
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{lcccc}
+\toprule
+ & \multicolumn{2}{c}{Sal e pimenta (RMSE 44,5)} & \multicolumn{2}{c}{Gaussiano (RMSE 19,2)}\\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}
+Vizinhança & Média & Mediana & Média & Mediana\\
+\midrule
+$3\times3$ & 20,8 & \textbf{12,3} & 14,5 & \textbf{14,0}\\
+$5\times5$ & 21,3 & 16,8 & 18,5 & 17,1\\
+\bottomrule
+\end{tabular}
+\caption{RMSE em relação à imagem original sem ruído (quanto menor, melhor).}
+\label{tab:rmse}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\quadro{0.18}{filtragem/sal_pimenta}{sal e pimenta}\hfill
+\quadro{0.18}{filtragem/sal_pimenta_media_3}{média $3\times3$}\hfill
+\quadro{0.18}{filtragem/sal_pimenta_media_5}{média $5\times5$}\hfill
+\quadro{0.18}{filtragem/sal_pimenta_mediana_3}{mediana $3\times3$}\hfill
+\quadro{0.18}{filtragem/sal_pimenta_mediana_5}{mediana $5\times5$}\\[2mm]
+\quadro{0.18}{filtragem/gaussiano}{gaussiano}\hfill
+\quadro{0.18}{filtragem/gaussiano_media_3}{média $3\times3$}\hfill
+\quadro{0.18}{filtragem/gaussiano_media_5}{média $5\times5$}\hfill
+\quadro{0.18}{filtragem/gaussiano_mediana_3}{mediana $3\times3$}\hfill
+\quadro{0.18}{filtragem/gaussiano_mediana_5}{mediana $5\times5$}
+\caption{Filtros da média e da mediana sobre ruído impulsivo (acima) e gaussiano (abaixo).}
+\label{fig:filtros}
+\end{figure}
+
+No ruído impulsivo a mediana $3\times3$ remove praticamente todos os pontos e preserva as bordas, enquanto a média apenas espalha os impulsos em manchas cinzentas e borra a imagem. No ruído gaussiano os dois filtros têm desempenho próximo. Em ambos os casos, aumentar a vizinhança para $5\times5$ suaviza mais, mas apaga detalhes finos (como o tripé e os prédios ao fundo), e o erro em relação à imagem original aumenta.
+
+\subsection{Testes de convolução}
+
+Todos os testes usam a função \texttt{convolucao} sobre a imagem do cinegrafista, com borda \texttt{repetir}. A Tabela~\ref{tab:conv} resume o intervalo dos valores obtidos antes do ajuste para $[0,255]$ e a fração de pixels que saíram desse intervalo. Exceto quando indicado, os valores fora do intervalo foram saturados.
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{lrrrrr}
+\toprule
+Máscara & Soma & Mínimo & Máximo & $<0$ & $>255$\\
+\midrule
+2.1, $c=1$, $d=1$ & 1 & $-1091$ & 1481 & 11,4\% & 7,2\%\\
+2.1, $c=2$, $d=1$ & 1 & $-2206$ & 2720 & 17,5\% & 11,8\%\\
+2.1, $c=1$, $d=3$ & 3 & $-1043$ & 1965 & 5,2\% & 69,6\%\\
+2.1, $c=3$, $d=3$ & 3 & $-3273$ & 4443 & 11,4\% & 66,1\%\\
+2.2, $h_1$, offset 128 & 0 & $-91$ & 349 & 0,6\% & 0,5\%\\
+2.2, $h_2$, offset 128 & 0 & $-280$ & 571 & 2,7\% & 2,5\%\\
+2.2, $h_1$, sem offset & 0 & $-219$ & 221 & 44,2\% & 0,0\%\\
+2.3, $h_3$ & 2 & $-300$ & 790 & 1,7\% & 59,8\%\\
+2.3, $h_4$ & $-8$ & $-2003$ & $-58$ & 100,0\% & 0,0\%\\
+\bottomrule
+\end{tabular}
+\caption{Valores da convolução antes do ajuste para $[0,255]$.}
+\label{tab:conv}
+\end{table}
+
+\subsubsection{Filtro de aguçamento}
+
+A máscara do teste 2.1 pode ser escrita como $g = d\,f - c\,\nabla^2_8 f$, em que $\nabla^2_8$ é o Laplaciano de vizinhança-8: o coeficiente central $8c+d$ é a soma de $d$ vezes o pixel com $c$ vezes a diferença entre o pixel e seus oito vizinhos. Assim, $c$ controla a intensidade do realce de bordas e $d$ controla o ganho de brilho, pois a soma dos coeficientes é exatamente $d$.
+
+Com $c=d=1$ a soma é 1: o brilho médio é preservado e as bordas ficam realçadas, junto com a textura da grama e o ruído (Figura~\ref{fig:conv21}). Com $c=2$ e $d=1$ o realce dobra e mais pixels saturam. Com $d=3$ a soma é 3 e o brilho triplica: o céu e a grama saturam em branco (cerca de 70\% dos pixels acima de 255) e restam visíveis apenas os objetos escuros.
+
+\begin{figure}[H]
+\centering
+\quadro{0.19}{convolucao/original}{original}\hfill
+\quadro{0.19}{convolucao/2.1_agucamento_c1_d1_saturar}{$c=1$, $d=1$}\hfill
+\quadro{0.19}{convolucao/2.1_agucamento_c2_d1_saturar}{$c=2$, $d=1$}\hfill
+\quadro{0.19}{convolucao/2.1_agucamento_c1_d3_saturar}{$c=1$, $d=3$}\hfill
+\quadro{0.19}{convolucao/2.1_agucamento_c3_d3_saturar}{$c=3$, $d=3$}
+\caption{Teste 2.1: filtro de aguçamento com diferentes valores de $c$ e $d$.}
+\label{fig:conv21}
+\end{figure}
+
+\subsubsection{Filtros de relevo}
+
+As duas máscaras somam zero: regiões homogêneas resultam em 0, que o offset 128 transforma em cinza médio, e apenas as transições aparecem, claras de um lado e escuras do outro, como se a imagem fosse iluminada lateralmente (Figura~\ref{fig:conv22}). Após a rotação de $180^\circ$ da convolução, $h_1$ calcula $f(x,y)-f(x-1,y-1)$, uma diferença ao longo da diagonal principal, enquanto $h_2$ combina pixels ao longo da diagonal secundária com sinais invertidos. Por isso a ``iluminação'' vem de lados diferentes: o contorno esquerdo do casaco aparece escuro com $h_1$ e claro com $h_2$. O coeficiente 2 de $h_2$ produz um relevo mais intenso. Sem o offset, 44\% dos pixels ficam negativos e são saturados em 0, e só um dos lados de cada borda permanece visível, o que mostra a função do offset.
+
+\begin{figure}[H]
+\centering
+\quadro{0.23}{convolucao/original}{original}\hfill
+\quadro{0.23}{convolucao/2.2_relevo_h1_saturar}{$h_1$, offset 128}\hfill
+\quadro{0.23}{convolucao/2.2_relevo_h2_saturar}{$h_2$, offset 128}\hfill
+\quadro{0.23}{convolucao/2.2_relevo_h1_sem_offset_saturar}{$h_1$, sem offset}
+\caption{Teste 2.2: filtros de relevo.}
+\label{fig:conv22}
+\end{figure}
+
+\subsubsection{Máscaras de detecção de bordas}
+
+A máscara $h_3$ tem coeficientes negativos acima e à esquerda e positivos abaixo e à direita, o que a torna sensível a transições na direção diagonal. Porém, sua soma é 2, e não 0: regiões homogêneas são multiplicadas por 2, o céu satura em branco (59,8\% dos pixels acima de 255) e o resultado é a imagem clareada com as bordas diagonais reforçadas, e não um mapa de bordas.
+
+A máscara $h_4$ lembra o Laplaciano, mas todos os seus coeficientes são negativos: ela calcula $-(4f(x,y) + \text{soma dos 4 vizinhos})$, isto é, uma média ponderada multiplicada por $-8$. Trata-se de um filtro passa-baixas invertido, e não de um detector de bordas. Todos os valores resultam negativos: saturados, produzem uma imagem totalmente preta; em módulo, quase todos ultrapassam 255; normalizados, revelam o negativo suavizado da imagem (Figura~\ref{fig:conv23}). O teste mostra que os sinais dos coeficientes determinam o comportamento do filtro: basta inverter o sinal dos vizinhos para transformar um detector de bordas em um filtro de suavização.
+
+\begin{figure}[H]
+\centering
+\quadro{0.23}{convolucao/2.3_bordas_h3_saturar}{$h_3$, saturado}\hfill
+\quadro{0.23}{convolucao/2.3_bordas_h3_normalizar}{$h_3$, normalizado}\hfill
+\quadro{0.23}{convolucao/2.3_bordas_h4_modulo}{$h_4$, módulo}\hfill
+\quadro{0.23}{convolucao/2.3_bordas_h4_normalizar}{$h_4$, normalizado}
+\caption{Teste 2.3: máscaras $h_3$ e $h_4$ com diferentes tratamentos do intervalo. A versão saturada de $h_4$ é inteiramente preta e foi omitida.}
+\label{fig:conv23}
+\end{figure}
+
+\subsection{Roberts, Sobel, Kirsch e Laplaciano}
+
+A Figura~\ref{fig:gradiente} mostra as respostas intermediárias dos operadores de gradiente. $G_x$ e $G_y$ foram normalizados para exibição (cinza médio corresponde a zero). Em $G_x$ destacam-se as bordas verticais, como as pernas do tripé; em $G_y$, as horizontais, como a linha do horizonte. O Roberts produz bordas finas e ruidosas; o Sobel produz bordas mais espessas e contínuas, graças à suavização embutida.
+
+\begin{figure}[H]
+\centering
+\quadro{0.23}{bordas/original}{original}\hfill
+\quadro{0.23}{bordas/roberts_gx}{Roberts $G_x$}\hfill
+\quadro{0.23}{bordas/roberts_gy}{Roberts $G_y$}\hfill
+\quadro{0.23}{bordas/roberts_magnitude}{Roberts magnitude}\\[2mm]
+\hspace*{0.257\textwidth}\hfill
+\quadro{0.23}{bordas/sobel_gx}{Sobel $G_x$}\hfill
+\quadro{0.23}{bordas/sobel_gy}{Sobel $G_y$}\hfill
+\quadro{0.23}{bordas/sobel_magnitude}{Sobel magnitude}
+\caption{Operadores de Roberts e Sobel: respostas de cada máscara e magnitude do gradiente.}
+\label{fig:gradiente}
+\end{figure}
+
+A Figura~\ref{fig:kirsch} mostra as oito respostas do Kirsch, com valores negativos saturados em zero. Cada máscara realça as bordas de uma orientação, e o máximo entre elas reúne as bordas de todas as direções. A resposta final é a mais intensa entre os operadores, pois os coeficientes 5 e $-3$ produzem valores elevados, e muitas bordas saturam.
+
+\begin{figure}[H]
+\centering
+\quadro{0.155}{bordas/kirsch_N}{N}\hfill
+\quadro{0.155}{bordas/kirsch_NE}{NE}\hfill
+\quadro{0.155}{bordas/kirsch_E}{E}\hfill
+\quadro{0.155}{bordas/kirsch_SE}{SE}\hfill
+\quadro{0.155}{bordas/kirsch_S}{S}\hfill
+\quadro{0.155}{bordas/kirsch_SO}{SO}\\[2mm]
+\quadro{0.155}{bordas/kirsch_O}{O}\hspace{2mm}
+\quadro{0.155}{bordas/kirsch_NO}{NO}\hspace{2mm}
+\quadro{0.155}{bordas/kirsch_final}{\textbf{final (máximo)}}
+\caption{Operador de Kirsch: resposta de cada uma das oito máscaras e resposta final.}
+\label{fig:kirsch}
+\end{figure}
+
+A Figura~\ref{fig:laplaciano} mostra o Laplaciano. Na resposta normalizada, regiões planas ficam em cinza médio e cada borda aparece como um par de linhas, uma clara e outra escura. Em módulo, as bordas surgem duplicadas e a textura da grama gera muitas respostas, o que evidencia a sensibilidade ao ruído. A máscara de vizinhança-8 produz respostas mais fortes que a de vizinhança-4.
+
+\begin{figure}[H]
+\centering
+\quadro{0.23}{bordas/laplaciano_4_resposta}{vizinhança-4, resposta}\hfill
+\quadro{0.23}{bordas/laplaciano_4_final}{vizinhança-4, módulo}\hfill
+\quadro{0.23}{bordas/laplaciano_8_resposta}{vizinhança-8, resposta}\hfill
+\quadro{0.23}{bordas/laplaciano_8_final}{vizinhança-8, módulo}
+\caption{Operador Laplaciano: resposta com sinal (normalizada) e em módulo.}
+\label{fig:laplaciano}
+\end{figure}
+
+\subsection{Aguçamento pelo Laplaciano e high boost}
+
+A Figura~\ref{fig:agucamento} apresenta separadamente a resposta do Laplaciano e a imagem combinada $f-\nabla^2 f$. As crateras e o relevo da Lua ficam mais definidos, e a vizinhança-8 produz um realce mais forte. No high boost, com média $5\times5$, a máscara de detalhe contém apenas as variações locais; com $k=1$ o realce é moderado, e com $k=4$ as bordas ficam acentuadas e o ruído da imagem começa a se destacar.
+
+\begin{figure}[H]
+\centering
+\quadro{0.23}{agucamento/original}{original}\hfill
+\quadro{0.23}{agucamento/laplaciano_4}{Laplaciano (viz.-4)}\hfill
+\quadro{0.23}{agucamento/agucada_4}{$f-\nabla^2 f$ (viz.-4)}\hfill
+\quadro{0.23}{agucamento/agucada_8}{$f-\nabla^2 f$ (viz.-8)}\\[2mm]
+\quadro{0.23}{agucamento/high_boost_mascara}{detalhe $f-\bar f$}\hfill
+\quadro{0.23}{agucamento/high_boost_k_1}{high boost, $k=1$}\hfill
+\quadro{0.23}{agucamento/high_boost_k_2}{high boost, $k=2$}\hfill
+\quadro{0.23}{agucamento/high_boost_k_4}{high boost, $k=4$}
+\caption{Aguçamento pelo Laplaciano (acima) e high boost com média $5\times5$ (abaixo).}
+\label{fig:agucamento}
+\end{figure}
+
+\subsection{Controle de contraste adaptativo}
+
+A Figura~\ref{fig:contraste} mostra o contraste adaptativo com $c\in\{20,40\}$ e $n\in\{7,15\}$. As rugas, os cabelos e a textura do fundo, pouco visíveis na imagem original, tornam-se evidentes. Aumentar $c$ aumenta o contraste local em toda a imagem. Aumentar $n$ torna as estatísticas menos locais: com $n=7$ o realce acompanha detalhes muito finos e amplifica o ruído; com $n=15$ o resultado é mais suave e preserva melhor as regiões grandes.
+
+\begin{figure}[H]
+\centering
+\quadro{0.19}{contraste/original}{original}\hfill
+\quadro{0.19}{contraste/c_20_n_7}{$c=20$, $n=7$}\hfill
+\quadro{0.19}{contraste/c_20_n_15}{$c=20$, $n=15$}\hfill
+\quadro{0.19}{contraste/c_40_n_7}{$c=40$, $n=7$}\hfill
+\quadro{0.19}{contraste/c_40_n_15}{$c=40$, $n=15$}
+\caption{Controle de contraste adaptativo.}
+\label{fig:contraste}
+\end{figure}
+
+\section{Discussão}
+
+\textbf{Média e mediana.} Os resultados confirmam a diferença teórica entre um filtro linear e um não linear. A média distribui a energia de um impulso por toda a vizinhança, de modo que um ponto de valor 255 cercado de 100 resulta em 117 com uma máscara $3\times3$; a mediana descarta o valor extremo e devolve 100. Contra o ruído impulsivo, a mediana teve RMSE 41\% menor que a média ($12{,}3$ contra $20{,}8$). Contra o ruído gaussiano, em que todos os pixels são levemente perturbados, as duas abordagens se equivalem.
+
+\textbf{Operadores de borda.} O Roberts, com máscaras $2\times2$, localiza bem as bordas, mas é o mais sensível ao ruído, pois cada resposta depende de apenas dois pixels. O Sobel suaviza na direção perpendicular à derivada e produz bordas mais contínuas. O Kirsch avalia oito direções e responde de forma intensa em todas elas, com o maior custo computacional (oito convoluções). O Laplaciano usa uma única máscara isotrópica, mas, por ser de segunda ordem, é o mais afetado pela textura da grama e gera bordas duplas.
+
+\textbf{Bordas e aguçamento.} Os detectores devolvem apenas as transições e descartam o conteúdo das regiões homogêneas, enquanto o aguçamento adiciona as transições à imagem original e preserva a cena. O teste 2.1 mostra que essas operações estão ligadas: a mesma máscara pode ser lida como ``$d$ vezes a imagem menos $c$ vezes o Laplaciano''.
+
+\textbf{Expansão e equalização.} A expansão depende apenas do mínimo e do máximo, e poucos pixels extremos bastam para anulá-la, como ocorreu com a imagem de polímeros. A equalização usa a distribuição completa dos níveis e produz realce forte em ambos os casos, mas também amplifica variações em regiões homogêneas e reduz o número de níveis distintos.
+
+\textbf{Influência dos parâmetros e das bordas.} Nos testes de convolução, a soma dos coeficientes antecipou corretamente o comportamento de cada máscara: preservação de brilho (soma 1), ganho de brilho (soma 3), relevo (soma 0) e inversão (soma $-8$). O tratamento das bordas influencia apenas uma faixa estreita junto às margens; com preenchimento por zeros, os detectores de borda acusam uma moldura artificial ao redor da imagem, motivo pelo qual os resultados usaram o modo \texttt{repetir}.
+
+\subsection{Questões de domínio conceitual}
+
+\textbf{1. Transformação pontual e operação de vizinhança.} Em uma transformação pontual, o valor de saída de um pixel depende apenas do valor desse mesmo pixel: $s=T(r)$. Em uma operação de vizinhança, depende também dos pixels ao redor. São pontuais: o negativo ($255-r$, que usa só o próprio pixel), a limiarização (compara o próprio pixel com $t$), a transformação gamma e a equalização de histograma (a tabela é calculada a partir da imagem toda, mas cada pixel é transformado apenas pelo seu próprio valor). São de vizinhança: os filtros da média e da mediana, os detectores de bordas e o contraste adaptativo, que usam a janela $n\times n$ ao redor do pixel.
+
+\textbf{2. Comportamento de $s=c\,r^\gamma$.} Com $r$ normalizado em $[0,1]$: para $\gamma<1$ a curva fica acima da identidade, os tons escuros são expandidos e a imagem clareia; para $\gamma=1$ (e $c=1$) a transformação é a identidade; para $\gamma>1$ a curva fica abaixo da identidade, os tons claros são expandidos e a imagem escurece. Em uma imagem predominantemente escura, passar $\gamma$ de 1 para 0,5 deve clarear a imagem e revelar detalhes nas sombras, com algum aumento de ruído e redução do contraste nas regiões claras. Foi o que se observou na Figura~\ref{fig:gamma}: um pixel de valor 64 passa a 128.
+
+\textbf{3. Média e mediana.} A média é linear (é uma convolução), calculada como a soma ponderada dos valores da janela; a mediana é não linear, calculada pela ordenação dos valores e escolha do elemento central. Diante de ruído impulsivo, a média espalha o impulso pela vizinhança e borra a imagem, enquanto a mediana descarta o valor extremo e preserva as bordas, como mostram a Figura~\ref{fig:filtros} e a Tabela~\ref{tab:rmse}.
+
+\textbf{4. $G_x$ e $G_y$ no Sobel.} $G_x$ estima a derivada horizontal, respondendo a bordas verticais; $G_y$ estima a derivada vertical, respondendo a bordas horizontais. Juntos formam o vetor gradiente, e a magnitude $\sqrt{G_x^2+G_y^2}$ fornece a intensidade da borda independentemente da sua orientação. No centro da matriz $\left[\begin{smallmatrix}10&20&30\\40&50&60\\70&80&90\end{smallmatrix}\right]$, o sistema obtém $G_x=-80$, $G_y=-240$ e magnitude $\sqrt{64000}\approx253$.
+
+\textbf{5. Comparação dos operadores.}
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabularx}{\textwidth}{lccXX}
+\toprule
+Operador & Tamanho & Máscaras & Direções & Sensibilidade ao ruído\\
+\midrule
+Roberts & $2\times2$ & 2 & diagonais & alta: usa apenas 2 pixels por resposta\\
+Sobel & $3\times3$ & 2 & horizontal e vertical & moderada: suaviza na direção perpendicular\\
+Kirsch & $3\times3$ & 8 & 8 direções, a cada $45^\circ$ & moderada: cada máscara soma 3 pixels de cada lado\\
+Laplaciano & $3\times3$ & 1 & isotrópico & alta: derivada de segunda ordem\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\textbf{6. Múltiplas máscaras no Kirsch.} Cada máscara responde fortemente apenas às bordas de uma orientação. Usar oito orientações garante que qualquer borda tenha ao menos uma máscara aproximadamente alinhada a ela. Tomar a maior resposta entre as máscaras seleciona a orientação que melhor descreve a borda naquele pixel, e esse valor representa a intensidade da borda; o índice da máscara vencedora indica sua direção.
+
+\textbf{7. Laplaciano em bordas e aguçamento.} O Laplaciano é nulo em regiões homogêneas e em variações lineares, e responde com sinais opostos de cada lado de uma transição; por isso serve para evidenciar bordas. No aguçamento, porém, a resposta isolada perderia o conteúdo da imagem, então ela é combinada com a original para reforçar as transições sem descartar a cena. Quando o coeficiente central da máscara é negativo, a resposta deve ser subtraída ($g = f-\nabla^2 f$); quando é positivo, deve ser somada. Em ambos os casos, o objetivo é aumentar a diferença entre o pixel e seus vizinhos.
+
+\textbf{8. Valores fora de $[0,255]$.} Coeficientes negativos produzem somas negativas, e coeficientes cuja soma é maior que 1 produzem valores acima de 255; na Tabela~\ref{tab:conv}, os valores chegaram a $-3273$ e $4443$. O sistema calcula a convolução em \texttt{double} e só então converte o resultado com \texttt{ajustar\_intervalo}, saturando, normalizando ou aplicando o módulo. Converter diretamente para inteiro de 8 bits pode ter dois efeitos, dependendo da linguagem: em C ou em Python/NumPy ocorre \emph{wrap-around} (300 vira 44, e $-50$ vira 206), o que gera artefatos sem sentido; no Octave, \texttt{uint8()} satura, e a informação além dos limites é perdida (com $h_4$ a imagem fica toda preta). Além disso, fazer as contas intermediárias em \texttt{uint8} saturaria cada soma parcial e produziria resultados incorretos mesmo quando o valor final coubesse no intervalo.
+
+\textbf{9. Expansão e equalização.} A expansão é uma transformação linear que leva $[r_{\min},r_{\max}]$ a $[0,255]$ e preserva a forma do histograma. A equalização é não linear e baseada na distribuição acumulada: afasta os níveis mais frequentes e tende a uniformizar o histograma. A equalização não produz necessariamente uma imagem melhor: ela amplifica o ruído em regiões homogêneas, pode dar aparência artificial, reduz o número de níveis distintos e, em uma imagem constante, leva todos os pixels a 255.
+
+\textbf{10. Aguçamento e detecção de bordas.} A detecção de bordas produz uma imagem que contém apenas as transições, com as regiões homogêneas em preto. O aguçamento produz a imagem original com as transições reforçadas. Uma imagem gerada por um operador de bordas não é, portanto, uma imagem aguçada: ela é o ingrediente que, somado ou subtraído da original, produz o aguçamento.
+
+\subsection{Limitações e dificuldades encontradas}
+
+\begin{itemize}
+  \item A convolução percorre a imagem pixel a pixel, o que é lento em Octave: gerar todos os resultados deste relatório leva cerca de um minuto. Uma implementação vetorizada seria mais rápida, mas menos legível.
+  \item Máscaras de dimensão par, como as de Roberts, não têm um centro único. Foi adotado o centro na posição $\lceil n/2\rceil$, o que exigiu preenchimento assimétrico das bordas.
+  \item A convolução gira a máscara em $180^\circ$, o que inverte o sinal de $G_x$ e $G_y$ e troca os rótulos de direção do Kirsch em relação à intuição de quem lê as máscaras como estão escritas.
+  \item O nome \texttt{gamma} entrava em conflito com a função $\Gamma$ do Octave, o que quebrava funções como \texttt{factorial}; a função foi renomeada para \texttt{potencia\_gamma}.
+  \item Na primeira versão, contas feitas em \texttt{uint8} saturavam e arredondavam valores intermediários; por isso todas as operações passaram a converter a imagem para \texttt{double} antes de calcular.
+  \item A formulação do contraste adaptativo adotada amplifica o ruído em regiões quase homogêneas, onde $\sigma$ é muito pequeno.
+\end{itemize}
+
+\section{Conclusão}
+
+Foi desenvolvida uma biblioteca em GNU Octave com 22 funções que implementam todas as operações pedidas na avaliação: operações algébricas, transformações de intensidade, histograma, contraste adaptativo, filtros espaciais, convolução genérica, detectores de bordas e aguçamento. Nenhum algoritmo avaliado utiliza funções prontas de processamento, e todas as funções são verificadas por 184 testes unitários com valores calculados manualmente.
+
+A convolução genérica, com tratamento explícito das bordas e dos valores fora de $[0,255]$, mostrou-se a base do sistema: filtros, detectores de bordas e técnicas de aguçamento são todos aplicações dela com máscaras diferentes. Os testes obrigatórios evidenciaram que a soma e a disposição dos coeficientes determinam o efeito de uma máscara, a ponto de uma máscara aparentemente de bordas ($h_4$) se revelar um filtro de suavização invertido.
+
+Entre as limitações permanecem o desempenho da convolução pixel a pixel e a dependência do contraste adaptativo em relação ao ruído. Como trabalhos futuros, seria possível vetorizar a convolução e acrescentar outros modos de tratamento de bordas, como o espelhamento.
+
+\section{Declaração de uso de ferramentas de Inteligência Artificial}
+
+\begin{campo}
+\textbf{Ferramentas utilizadas:} Claude Code (Anthropic), assistente de programação baseado em IA generativa.\\[3mm]
+\textbf{Finalidade do uso:} configuração do ambiente de desenvolvimento (Nix, MISS\_HIT, Makefile e executor de testes); explicação dos conceitos e das opções de implementação de cada operação; revisão e correção de erros nas funções escritas pelo aluno; escrita dos testes unitários; implementação de parte das funções da biblioteca; geração do script de resultados; e redação da primeira versão deste relatório.\\[3mm]
+\textbf{Observações:} As funções \texttt{preencher\_bordas}, \texttt{convolucao}, \texttt{negativo}, \texttt{limiarizacao}, \texttt{potencia\_gamma} e \texttt{logaritimo} foram iniciadas pelo aluno e corrigidas ou ampliadas com auxílio da ferramenta. As demais funções foram implementadas com auxílio da ferramenta e revisadas pelo aluno. Todas as decisões de projeto foram discutidas durante o desenvolvimento, e o aluno é responsável por todo o código, texto e resultados apresentados.
+\end{campo}
+
+\section{Referências}
+
+\begin{itemize}
+  \item GONZALEZ, Rafael C.; WOODS, Richard E. \textbf{Processamento digital de imagens}. 3. ed. São Paulo: Pearson Prentice Hall, 2010.
+  \item MARQUES FILHO, Ogê; VIEIRA NETO, Hugo. \textbf{Processamento digital de imagens}. Rio de Janeiro: Brasport, 1999.
+  \item KIRSCH, Russell A. Computer determination of the constituent structure of biological images. \textbf{Computers and Biomedical Research}, v. 4, n. 3, p. 315--328, 1971.
+  \item ROBERTS, Lawrence G. \textbf{Machine perception of three-dimensional solids}. Tese (Doutorado) -- Massachusetts Institute of Technology, Cambridge, 1963.
+  \item EATON, John W. et al. \textbf{GNU Octave manual}. Disponível em: \url{https://docs.octave.org}. Acesso em: out. 2026.
+  \item MISS\_HIT. \textbf{MISS\_HIT: MATLAB independent, small \& safe, high integrity tools}. Disponível em: \url{https://misshit.org}. Acesso em: out. 2026.
+\end{itemize}
+
+\end{document}

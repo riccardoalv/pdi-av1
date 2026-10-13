@@ -1,0 +1,13 @@
+result
+.direnv/
+octave-workspace
+.mh_cache/
+
+# LaTeX
+*.aux
+*.log
+*.out
+*.toc
+*.fls
+*.fdb_latexmk
+*.synctex.gz
