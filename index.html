@@ -1,0 +1,461 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PDI · API</title>
+<style>
+:root {
+  --fundo: #f6f5f2;
+  --painel: #ffffff;
+  --texto: #1d1d1b;
+  --suave: #6b6a65;
+  --borda: #dedcd5;
+  --destaque: #2f5d8a;
+  --erro: #a33a2a;
+  --codigo: #efede7;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --fundo: #161615;
+    --painel: #1f1f1d;
+    --texto: #ecebe6;
+    --suave: #9c9a92;
+    --borda: #34332f;
+    --destaque: #7fb0de;
+    --erro: #e5826f;
+    --codigo: #2a2926;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--fundo);
+  color: var(--texto);
+  font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+main {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px 16px 48px;
+  display: grid;
+  grid-template-columns: 360px 1fr;
+  gap: 24px;
+  align-items: start;
+}
+header { grid-column: 1 / -1; }
+h1 { font-size: 22px; margin: 0; }
+header p { margin: 4px 0 0; color: var(--suave); }
+section {
+  background: var(--painel);
+  border: 1px solid var(--borda);
+  border-radius: 10px;
+  padding: 16px;
+}
+h2 {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--suave);
+  margin: 16px 0 8px;
+}
+h2:first-child { margin-top: 0; }
+label { display: block; margin-bottom: 10px; font-size: 14px; }
+label span { display: block; margin-bottom: 3px; }
+label small { color: var(--suave); font-size: 12px; }
+input, select, button {
+  font: inherit;
+  width: 100%;
+  padding: 7px 9px;
+  border: 1px solid var(--borda);
+  border-radius: 6px;
+  background: var(--fundo);
+  color: var(--texto);
+}
+input[type=file] { padding: 5px; }
+button {
+  background: var(--destaque);
+  border-color: var(--destaque);
+  color: var(--painel);
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 8px;
+}
+button:disabled { opacity: .6; cursor: wait; }
+#descricao { color: var(--suave); font-size: 13px; margin: -4px 0 12px; }
+.imagens {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+}
+figure { margin: 0; }
+figure img, figure canvas {
+  display: block;
+  max-width: 100%;
+  border: 1px solid var(--borda);
+  border-radius: 6px;
+  background: var(--codigo);
+  image-rendering: pixelated;
+}
+figcaption { font-size: 13px; color: var(--suave); margin-top: 4px; }
+#status { font-size: 13px; color: var(--suave); min-height: 20px; margin-bottom: 8px; }
+#erro {
+  color: var(--erro);
+  white-space: pre-wrap;
+  font: 13px/1.4 ui-monospace, monospace;
+  margin: 0 0 12px;
+}
+#erro:empty { display: none; }
+#curl {
+  background: var(--codigo);
+  border-radius: 6px;
+  padding: 10px;
+  font: 12px/1.5 ui-monospace, monospace;
+  white-space: pre-wrap;
+  word-break: break-all;
+  margin: 0;
+}
+a { color: var(--destaque); }
+[hidden] { display: none !important; }
+@media (max-width: 800px) {
+  main { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Processamento de Imagens · API</h1>
+    <p>Interface para testar os endpoints do <code>servidor.py</code>. Cada envio vira um <code>POST /&lt;operacao&gt;</code> processado pelo Octave.</p>
+  </header>
+
+  <section>
+    <form id="formulario">
+      <h2>Operação</h2>
+      <label>
+        <select id="operacao"></select>
+      </label>
+      <p id="descricao"></p>
+
+      <h2>Imagens</h2>
+      <label>
+        <span>Imagem</span>
+        <input type="file" name="imagem" accept="image/*,.tif,.tiff" required>
+      </label>
+      <label id="campo-imagem2" hidden>
+        <span>Segunda imagem <small>mesmo tamanho da primeira</small></span>
+        <input type="file" name="imagem2" accept="image/*,.tif,.tiff">
+      </label>
+      <label id="campo-pesos" hidden>
+        <span>Pesos <small>imagem em tons de cinza: preto = 0, branco = 1</small></span>
+        <input type="file" name="pesos" accept="image/*,.tif,.tiff">
+      </label>
+
+      <div id="bloco-parametros">
+        <h2>Parâmetros</h2>
+        <div id="parametros"></div>
+      </div>
+
+      <div id="bloco-saida">
+        <h2>Saída</h2>
+        <label id="campo-campo">
+          <span>Campo do resultado</span>
+          <select name="campo"></select>
+        </label>
+        <label id="campo-indice" hidden>
+          <span>Direção</span>
+          <select name="indice"></select>
+        </label>
+        <label>
+          <span>Ajuste <small>aplicado quando o resultado não é uint8</small></span>
+          <select name="ajuste">
+            <option>saturar</option>
+            <option>normalizar</option>
+            <option>modulo</option>
+          </select>
+        </label>
+      </div>
+
+      <button type="submit" id="enviar">Processar</button>
+    </form>
+  </section>
+
+  <section>
+    <div id="status">Escolha uma operação e uma imagem.</div>
+    <pre id="erro"></pre>
+    <div class="imagens">
+      <figure id="fig-original" hidden>
+        <img id="original" alt="Imagem original">
+        <figcaption>Original</figcaption>
+      </figure>
+      <figure id="fig-resultado" hidden>
+        <img id="resultado" alt="Resultado">
+        <figcaption><span id="legenda"></span> · <a id="baixar" download>baixar PNG</a></figcaption>
+      </figure>
+      <figure id="fig-histograma" hidden>
+        <canvas id="histograma" width="512" height="256"></canvas>
+        <figcaption id="legenda-histograma"></figcaption>
+      </figure>
+    </div>
+    <h2>Equivalente com curl</h2>
+    <pre id="curl"></pre>
+  </section>
+</main>
+
+<script>
+const BORDA = { nome: 'modo', rotulo: 'Borda', opcoes: ['zero', 'repetir', 'constante'], valor: 'repetir' };
+const BORDA_SIMPLES = { ...BORDA, opcoes: ['zero', 'repetir'] };
+const CONSTANTE = { nome: 'constante', valor: 128 };
+const GRADIENTE = ['final', 'gx', 'gy', 'magnitude'];
+
+const OPERACOES = [
+  { grupo: 'Intensidade', nome: 'negativo', descricao: 's = 255 - r', parametros: [] },
+  { grupo: 'Intensidade', nome: 'limiarizacao', descricao: 'Pixels abaixo do limiar viram 0, os demais 255.',
+    parametros: [{ nome: 'limiar', valor: 128 }] },
+  { grupo: 'Intensidade', nome: 'logaritimo', descricao: 's = c · log(1 + r). Com c = 255 / log(256) a saída cobre 0 a 255.',
+    parametros: [{ nome: 'c', valor: 45.986 }] },
+  { grupo: 'Intensidade', nome: 'potencia_gamma', descricao: 's = 255 · c · (r / 255)^y',
+    parametros: [{ nome: 'c', valor: 1 }, { nome: 'y', rotulo: 'y (gamma)', valor: 0.5 }] },
+  { grupo: 'Intensidade', nome: 'alargamento_contraste', descricao: 'Função linear por partes passando por (r1, s1) e (r2, s2).',
+    parametros: [{ nome: 'r1', valor: 140 }, { nome: 's1', valor: 30 }, { nome: 'r2', valor: 200 }, { nome: 's2', valor: 225 }] },
+
+  { grupo: 'Algébricas', nome: 'dissolve_uniforme', descricao: 's = (1 - t) · f1 + t · f2', imagens: ['imagem2'],
+    parametros: [{ nome: 't', valor: 0.5 }] },
+  { grupo: 'Algébricas', nome: 'dissolve_nao_uniforme', descricao: 'Como o dissolve uniforme, mas com um peso por pixel.',
+    imagens: ['imagem2', 'pesos'], parametros: [] },
+
+  { grupo: 'Histograma', nome: 'histograma', descricao: 'Contagem de cada nível de 0 a 255. Responde JSON.', json: true, parametros: [] },
+  { grupo: 'Histograma', nome: 'expansao_histograma', descricao: 'Estica o intervalo [min, max] para [0, 255].', parametros: [] },
+  { grupo: 'Histograma', nome: 'equalizacao_histograma', descricao: 'Mapeia cada nível pela CDF do histograma.', parametros: [] },
+
+  { grupo: 'Auxiliares', nome: 'ajustar_intervalo', descricao: 'Leva os valores para 0 a 255.',
+    parametros: [{ nome: 'modo', opcoes: ['saturar', 'normalizar', 'modulo'], valor: 'saturar' }] },
+  { grupo: 'Auxiliares', nome: 'preencher_bordas', descricao: 'Devolve a imagem com a borda adicionada para um kernel n × n.',
+    parametros: [{ nome: 'n', rotulo: 'n (ou [linhas, colunas])', valor: 15 }, BORDA, CONSTANTE] },
+  { grupo: 'Auxiliares', nome: 'convolucao', descricao: 'Convolução com um kernel qualquer, em JSON.',
+    parametros: [{ nome: 'kernel', valor: '[[0,1,0],[1,-4,1],[0,1,0]]', texto: true }, BORDA,
+                 { nome: 'offset', valor: 0 }, CONSTANTE] },
+
+  { grupo: 'Filtragem', nome: 'filtro_media', descricao: 'Média em uma janela n × n.',
+    parametros: [{ nome: 'n', valor: 3 }, BORDA, CONSTANTE] },
+  { grupo: 'Filtragem', nome: 'filtro_mediana', descricao: 'Mediana em uma janela n × n.',
+    parametros: [{ nome: 'n', valor: 3 }, BORDA_SIMPLES] },
+  { grupo: 'Filtragem', nome: 'contraste_adaptativo', descricao: 'Realce local a partir da média e da variância na janela n × n.',
+    parametros: [{ nome: 'c', valor: 20 }, { nome: 'n', valor: 7 }, BORDA_SIMPLES] },
+
+  { grupo: 'Bordas', nome: 'bordas_roberts', descricao: 'Gradiente com as máscaras 2 × 2 de Roberts.', campos: GRADIENTE, parametros: [BORDA, CONSTANTE] },
+  { grupo: 'Bordas', nome: 'bordas_sobel', descricao: 'Gradiente com as máscaras 3 × 3 de Sobel.', campos: GRADIENTE, parametros: [BORDA, CONSTANTE] },
+  { grupo: 'Bordas', nome: 'bordas_kirsch', descricao: 'Máximo das 8 máscaras direcionais de Kirsch.',
+    campos: ['final', 'maximo', 'respostas'], parametros: [BORDA, CONSTANTE] },
+  { grupo: 'Bordas', nome: 'bordas_laplaciano', descricao: 'Laplaciano com vizinhança 4 ou 8.',
+    campos: ['final', 'resposta'],
+    parametros: [{ nome: 'vizinhanca', rotulo: 'Vizinhança', opcoes: ['4', '8'], valor: '4' }, BORDA, CONSTANTE] },
+
+  { grupo: 'Aguçamento', nome: 'agucamento_laplaciano', descricao: 'g = f - laplaciano',
+    campos: ['final', 'laplaciano', 'laplaciano_visual'],
+    parametros: [{ nome: 'vizinhanca', rotulo: 'Vizinhança', opcoes: ['4', '8'], valor: '4' }, BORDA, CONSTANTE] },
+  { grupo: 'Aguçamento', nome: 'high_boost', descricao: 'g = f + k · (f - média)',
+    campos: ['final', 'suavizada', 'mascara'],
+    parametros: [{ nome: 'k', valor: 2 }, { nome: 'n', valor: 5 }, BORDA, CONSTANTE] },
+];
+
+const DIRECOES = ['N', 'NE', 'E', 'SE', 'S', 'SO', 'O', 'NO'];
+
+const $ = (id) => document.getElementById(id);
+const formulario = $('formulario');
+const seletor = $('operacao');
+const campoSelect = formulario.elements.campo;
+const indiceSelect = formulario.elements.indice;
+let urlResultado = null;
+let urlOriginal = null;
+
+function opcoes(select, valores, rotulos) {
+  select.replaceChildren(...valores.map((valor, i) => new Option(rotulos ? rotulos[i] : valor, valor)));
+}
+
+function montarSeletor() {
+  const grupos = {};
+  for (const op of OPERACOES) {
+    if (!grupos[op.grupo]) {
+      grupos[op.grupo] = document.createElement('optgroup');
+      grupos[op.grupo].label = op.grupo;
+      seletor.append(grupos[op.grupo]);
+    }
+    grupos[op.grupo].append(new Option(op.nome, op.nome));
+  }
+  opcoes(indiceSelect, DIRECOES.map((_, i) => String(i + 1)), DIRECOES);
+}
+
+function operacaoAtual() {
+  return OPERACOES.find((op) => op.nome === seletor.value);
+}
+
+function montarParametros() {
+  const op = operacaoAtual();
+  $('descricao').textContent = op.descricao;
+
+  const imagens = op.imagens || [];
+  $('campo-imagem2').hidden = !imagens.includes('imagem2');
+  $('campo-pesos').hidden = !imagens.includes('pesos');
+  formulario.elements.imagem2.required = imagens.includes('imagem2');
+  formulario.elements.pesos.required = imagens.includes('pesos');
+
+  const container = $('parametros');
+  container.replaceChildren();
+  for (const p of op.parametros) {
+    const label = document.createElement('label');
+    const span = document.createElement('span');
+    span.textContent = p.rotulo || p.nome;
+    let campo;
+    if (p.opcoes) {
+      campo = document.createElement('select');
+      opcoes(campo, p.opcoes);
+    } else {
+      campo = document.createElement('input');
+      campo.type = p.texto ? 'text' : 'number';
+      if (!p.texto) campo.step = 'any';
+      if (p.nome === 'n' && op.nome === 'preencher_bordas') campo.type = 'text';
+    }
+    campo.name = p.nome;
+    campo.value = p.valor;
+    label.id = `parametro-${p.nome}`;
+    label.append(span, campo);
+    container.append(label);
+  }
+  $('bloco-parametros').hidden = op.parametros.length === 0;
+  atualizarConstante();
+
+  $('bloco-saida').hidden = !!op.json;
+  $('campo-campo').hidden = !op.campos;
+  opcoes(campoSelect, op.campos || ['final']);
+  atualizarIndice();
+  atualizarCurl();
+}
+
+function atualizarIndice() {
+  $('campo-indice').hidden = campoSelect.value !== 'respostas';
+}
+
+function atualizarConstante() {
+  const campo = $('parametro-constante');
+  if (campo) campo.hidden = formulario.elements.modo.value !== 'constante';
+}
+
+function camposEnviados() {
+  const op = operacaoAtual();
+  const pares = [];
+  for (const p of op.parametros) {
+    if ($(`parametro-${p.nome}`).hidden) continue;
+    const valor = formulario.elements[p.nome].value.trim();
+    if (valor !== '') pares.push([p.nome, valor]);
+  }
+  if (!op.json) {
+    if (op.campos && campoSelect.value !== 'final') pares.push(['campo', campoSelect.value]);
+    if (!$('campo-indice').hidden) pares.push(['indice', indiceSelect.value]);
+    if (formulario.elements.ajuste.value !== 'saturar') pares.push(['ajuste', formulario.elements.ajuste.value]);
+  }
+  return pares;
+}
+
+function atualizarCurl() {
+  const op = operacaoAtual();
+  const arquivos = ['imagem', ...(op.imagens || [])].map((nome) => {
+    const arquivo = formulario.elements[nome].files[0];
+    return `  -F ${nome}=@${arquivo ? arquivo.name : 'arquivo.png'}`;
+  });
+  const campos = camposEnviados().map(([nome, valor]) => `  -F '${nome}=${valor}'`);
+  const saida = op.json ? '' : ' \\\n  -o saida.png';
+  $('curl').textContent = ['curl', ...arquivos, ...campos].join(' \\\n') +
+    ` \\\n  ${location.origin}/${op.nome}${saida}`;
+}
+
+function mostrarOriginal() {
+  const arquivo = formulario.elements.imagem.files[0];
+  if (urlOriginal) URL.revokeObjectURL(urlOriginal);
+  if (!arquivo) {
+    $('fig-original').hidden = true;
+    return;
+  }
+  urlOriginal = URL.createObjectURL(arquivo);
+  const img = $('original');
+  img.onload = () => { $('fig-original').hidden = false; };
+  img.onerror = () => { $('fig-original').hidden = true; };
+  img.src = urlOriginal;
+}
+
+function desenharHistograma(h) {
+  const canvas = $('histograma');
+  const ctx = canvas.getContext('2d');
+  const estilo = getComputedStyle(document.documentElement);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  const maximo = Math.max(...h);
+  const largura = canvas.width / h.length;
+  ctx.fillStyle = estilo.getPropertyValue('--destaque');
+  h.forEach((valor, i) => {
+    const altura = maximo ? (valor / maximo) * (canvas.height - 4) : 0;
+    ctx.fillRect(i * largura, canvas.height - altura, Math.max(largura - 0.5, 1), altura);
+  });
+  const total = h.reduce((a, b) => a + b, 0);
+  const media = h.reduce((a, v, i) => a + v * i, 0) / total;
+  const pico = h.indexOf(maximo);
+  $('legenda-histograma').textContent =
+    `Histograma · ${total} pixels · média ${media.toFixed(1)} · pico no nível ${pico} (${maximo})`;
+  $('fig-histograma').hidden = false;
+}
+
+async function enviar(evento) {
+  evento.preventDefault();
+  const op = operacaoAtual();
+  const dados = new FormData();
+  for (const nome of ['imagem', ...(op.imagens || [])]) {
+    dados.append(nome, formulario.elements[nome].files[0]);
+  }
+  for (const [nome, valor] of camposEnviados()) dados.append(nome, valor);
+
+  $('erro').textContent = '';
+  $('fig-resultado').hidden = true;
+  $('fig-histograma').hidden = true;
+  $('enviar').disabled = true;
+  $('status').textContent = `Processando ${op.nome}…`;
+  const inicio = performance.now();
+
+  try {
+    const resposta = await fetch(`/${op.nome}`, { method: 'POST', body: dados });
+    const segundos = ((performance.now() - inicio) / 1000).toFixed(2);
+    if (!resposta.ok) {
+      $('erro').textContent = await resposta.text();
+      $('status').textContent = `Erro ${resposta.status} em ${segundos} s`;
+      return;
+    }
+    if (op.json) {
+      desenharHistograma(await resposta.json());
+    } else {
+      if (urlResultado) URL.revokeObjectURL(urlResultado);
+      urlResultado = URL.createObjectURL(await resposta.blob());
+      $('resultado').src = urlResultado;
+      $('baixar').href = urlResultado;
+      $('baixar').download = `${op.nome}.png`;
+      const campo = op.campos ? campoSelect.value : 'final';
+      $('legenda').textContent = campo === 'final' ? op.nome : `${op.nome} · ${campo}`;
+      $('fig-resultado').hidden = false;
+    }
+    $('status').textContent = `${op.nome} concluído em ${segundos} s`;
+  } catch (erro) {
+    $('erro').textContent = String(erro);
+    $('status').textContent = 'Falha na conexão com o servidor';
+  } finally {
+    $('enviar').disabled = false;
+  }
+}
+
+montarSeletor();
+seletor.addEventListener('change', montarParametros);
+campoSelect.addEventListener('change', () => { atualizarIndice(); atualizarCurl(); });
+formulario.addEventListener('input', atualizarCurl);
+formulario.addEventListener('change', () => { atualizarConstante(); atualizarCurl(); });
+formulario.elements.imagem.addEventListener('change', mostrarOriginal);
+formulario.addEventListener('submit', enviar);
+montarParametros();
+</script>
+</body>
+</html>

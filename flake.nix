@@ -20,6 +20,7 @@
           packages = [
             # pacote "image": apenas para leitura, escrita, exibicao e interface (pkg load image)
             (pkgs.octave.withPackages (ps: [ ps.image ]))
+            pkgs.python3
             pkgs.python3Packages.miss-hit # mh_style (formatter), mh_lint
             pkgs.gnumake
             (pkgs.texliveMedium.withPackages (ps: [
