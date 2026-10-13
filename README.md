@@ -1,5 +1,7 @@
 # PDI · AV1
 
+link do video de apresentação: https://drive.google.com/file/d/1WqKytrUnxbx9fmXIc8DPo6GBhQDUdRzN/view?usp=sharing
+
 Biblioteca em GNU Octave para processamento de imagens em escala de cinza (8 bits).
 Enunciado: `docs/av1.pdf`. Relatório: `docs/relatorio.pdf`.
 
